@@ -2,6 +2,7 @@
 #include <vector>
 #include <sstream>
 #include <stdlib.h>
+#include "weight.hpp"
 
 class Board{
     int map[15][15]{};
@@ -17,6 +18,11 @@ class Board{
         int get_map_val(size_t y, size_t x) const{ return map[y][x]; }
         bool game_end_get()const{ return game_end;}
         void game_end_set(){ game_end = true;}
+        std::vector<int> map2vec() const{
+            std::vector<int> vec;
+            for (int i = 0; i < 15; i++) for (int j=0; j < 15; j++) vec.push_back(map[i][j]);
+            return vec;
+        }
 
         friend std::ostream& operator<<(std::ostream& out, const Board& b){
             for (int i{0}; i < 15; i++){
@@ -29,9 +35,16 @@ class Board{
 
 class Player{
     int first_or_second;
+    Weight w1, w2, w3;
+
     public:
-        Player(int f_or_s): first_or_second{f_or_s}{}
-        void random_action(Board& b) const{
+        Player(int f_or_s):
+            first_or_second{f_or_s},
+            w1("weight1_"+std::to_string(f_or_s), 300, 225),
+            w2("weight2_"+std::to_string(f_or_s), 300, 300),
+            w3("weight3_"+std::to_string(f_or_s), 225, 300){}
+        
+        void random_action(Board& b){
             size_t x{static_cast<size_t>(rand()%15)}, y{static_cast<size_t>(rand()%15)};
             if (rule_check(b,x,y)==0) random_action(b);
             else if (rule_check(b,x,y)==1) b.action(x,y);
@@ -42,7 +55,11 @@ class Player{
             }
         }
 
-        int rule_check(Board b, size_t x, size_t y) const{
+        void neural_net_action(Board& b){
+            std::vector<int> b.map2vec()
+        }
+
+        int rule_check(const Board& b, size_t x, size_t y) const{
             if (first_or_second==1){
                 int san_counter{0},yon_counter{0},naga_counter{0};
                 for (int yc{-1};yc<2;yc++){
