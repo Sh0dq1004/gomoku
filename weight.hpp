@@ -5,7 +5,7 @@
 #include <random>
 #include <cmath>
 
-using std::string, std::vector;
+using std::string, std::vector, std::exp;
 
 class Weight{
     string name;
@@ -54,13 +54,16 @@ class Weight{
     int height() const{ return vec.size(); }
     int weight() const{ return vec[0].size(); }
 
-    vector<vector<double>> operator*(const vector<vector<double>>& v) const{
+    template<typename T>
+    vector<vector<double>> operator*(const vector<vector<T>>& v) const{
         vector<vector<double>> result(height(),vector<double>(v[0].size(),0));
         for (int i=0; i < height(); i++) for (int j=0; j < v[0].size(); j++) for (int k=0; k < weight(); k++) result[i][j] += vec[i][k]*v[k][j];
         return result;
     }
 
-    std::pair<vector<double>,vector<vector<double>>> operator*(const vector<double>& v) const{
+
+    template<typename T>
+    std::pair<vector<double>,vector<vector<double>>> operator*(const vector<T>& v) const{
         vector<double> result(height(),0);
         for (int i=0; i < height(); i++) for(int j=0; j < weight(); j++) result[i] += vec[i][j]*v[j];
         vector<vector<double>> diff(height(), vector<double>(weight()));
@@ -90,6 +93,33 @@ std::pair<vector<double>,vector<double>> relu(vector<double> vec){
         }
     }
     return {result, diff};
+}
+
+template<typename T>
+std::pair<vector<T>,vector<T>> softmax(const vector<T>& vec){
+    vector<T> exp_vec;
+    T sum{};
+    for (T x : vec){
+        T e{exp(x)};
+        sum += e;
+        exp_vec.push_back(e);
+    }
+
+
+    vector<T> result;
+    vector<T> diff;
+    for (int i = 0; i < vec.size(); i++){
+        result.push_back(exp_vec[i] / sum);
+        diff.push_back(exp_vec[i] * (sum - exp_vec[i]) / (sum * sum));
+    }
+    return {result, diff};
+}
+
+
+
+template <typename T>
+void addGap(vector<T>& vec){
+    vec.push_back(static_cast<T>(1));
 }
 
 std::ostream& operator<< (std::ostream& os, const vector<double>& v){

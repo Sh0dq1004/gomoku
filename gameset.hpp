@@ -40,9 +40,9 @@ class Player{
     public:
         Player(int f_or_s):
             first_or_second{f_or_s},
-            w1("weight1_"+std::to_string(f_or_s), 300, 225),
-            w2("weight2_"+std::to_string(f_or_s), 300, 300),
-            w3("weight3_"+std::to_string(f_or_s), 225, 300){}
+            w1("weight1_"+std::to_string(f_or_s), 300, 226),
+            w2("weight2_"+std::to_string(f_or_s), 300, 301),
+            w3("weight3_"+std::to_string(f_or_s), 225, 301){}
         
         void random_action(Board& b){
             size_t x{static_cast<size_t>(rand()%15)}, y{static_cast<size_t>(rand()%15)};
@@ -56,7 +56,21 @@ class Player{
         }
 
         void neural_net_action(Board& b){
-            std::vector<int> b.map2vec()
+            std::vector<int> input{b.map2vec()};
+
+            addGap(input);
+            auto [u1, d_weight_1] = w1 * input;
+            auto [h1, d_relu_1] = relu(u1);
+
+            addGap(h1);
+            auto [u2, d_weight_2] = w2 * h1;
+            auto [h2, d_relu_2] = relu(u2);
+
+            addGap(h2);
+            auto [u3, d_weight_3] = w3 * h2;
+            auto [output, d_softmax] = softmax(u3);
+
+            //outputをmapni直して最も大きいところを次の一手として考えさせる。
         }
 
         int rule_check(const Board& b, size_t x, size_t y) const{
