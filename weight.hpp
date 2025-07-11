@@ -5,64 +5,100 @@
 #include <random>
 #include <cmath>
 
+using std::string, std::vector;
+
 class Weight{
-    std::string name;
-    int height,width;
-    double* vecs;
+    string name;
+    vector<vector<double>> vec;
     public:
-    Weight(std::string path,int w,int h): name(path),height(h),width(w){
-        vecs=new double[h][w];
-        if (!load()){
-            std::random_device seed_gen;
-            std::default_random_engine engine(seed_gen());
-            std::normal_distribution<> dist(0.0, 1.0);
-            double c{sqrt(w)/sqrt(2)};
-            for (int i=0; i<height;i++){
-                for (int j=0; j<width;j++) vecs[i][j]=dist(engine)/c;
-            }
+    Weight(std::string p):name(p){ load(); }
+
+    Weight(std::string p,int h,int w):name(p){
+        // Using He initializer
+        std::random_device seed_gen;
+        std::default_random_engine engine(seed_gen());
+        std::normal_distribution<> dist(0.0, 1.0);
+        double c{sqrt(w)/sqrt(2)};
+        for (int i=0; i<h; i++){
+            vector<double> v;
+            for (int j=0; j<w; j++) v.push_back(dist(engine)/c);
+            vec.push_back(v);
         }
     }
 
-    bool load(){
+    Weight(int h, int w, double val=0.0){
+        vec = vector<vector<double>> (h, vector<double>(w, val));
+    }
+
+    void load(){
         std::ifstream f("weights/"+name+".txt");
-        for (int i{0}; i<height; i++){
-            std::string line; std::getline(f,line); double v[width];
+        for (string line; std::getline(f, line);){
             std::stringstream ss; ss << line;
-            for (int j{0}; j<width; j++){
-                std::string e; ss>>e; v[j]=std::stod(e);
-            }
-            vecs[i]=v;
+            std::vector<double> v;
+            for (string e; ss >> e;) v.push_back(std::stod(e));
+            vec.push_back(v);
         }
-        return std::size(vecs)!=0
     }
 
     void save(){
         std::ofstream f("weights/"+name+".txt");
-        for (const std::vector<double>& v:vecs){
+        for (const std::vector<double>& v : vec){
             for (const double& e:v) f << e << ' ';
             f<<"\n";
         }
     }
-    
-    /*
-    std::vector<std::vector<double>> operator*(const std::vector<std::vector<double>>& v) const{
-        std::vector<std::vector<double>> result;
-        for (int i=0;i<height;i++){
-            double x;
-            for (int j=0;j<width;j++) x+=vecs[i][j]*v[j][0];
-            result.push_back(std::vector<double>{x});
-        }
+
+    vector<double>& operator[](int n) { return vec[n]; }
+    vector<double> operator[](int n) const { return vec[n]; }
+
+    int height() const{ return vec.size(); }
+    int weight() const{ return vec[0].size(); }
+
+    vector<vector<double>> operator*(const vector<vector<double>>& v) const{
+        vector<vector<double>> result(height(),vector<double>(v[0].size(),0));
+        for (int i=0; i < height(); i++) for (int j=0; j < v[0].size(); j++) for (int k=0; k < weight(); k++) result[i][j] += vec[i][k]*v[k][j];
         return result;
     }
 
-    std::vector<std::vector<double>> operator*(const Weight& w) const{
-        std::vector<std::vector<double>> result;
-        for (int i=0;i<height;i++){
-            double x;
-            for (int j=0;j<width;j++) x+=vecs[i][j]*v[j][0];
-            result.push_back(std::vector<double>{x});
-        }
-        return result;
+    std::pair<vector<double>,vector<vector<double>>> operator*(const vector<double>& v) const{
+        vector<double> result(height(),0);
+        for (int i=0; i < height(); i++) for(int j=0; j < weight(); j++) result[i] += vec[i][j]*v[j];
+        vector<vector<double>> diff(height(), vector<double>(weight()));
+        for (int i=0; i < height(); i++) for (int j=0; j < weight(); j++) diff[i][j]=v[j];
+        return {result, diff};
     }
-    */
+
+    friend std::ostream& operator<< (std::ostream& os, const Weight& w){
+        for (int i=0; i < w.height(); i++){
+            for (int j=0; j < w.weight(); j++) os << w[i][j] << " ";
+            os << std::endl;
+        }
+        return os;
+    }
 };
+
+std::pair<vector<double>,vector<double>> relu(vector<double> vec){
+    vector<double> result(vec.size());
+    vector<double> diff(vec.size());
+    for (int i=0; i < vec.size(); i++){
+        if (vec[i] >= 0) {
+            result[i]=vec[i];
+            diff[i]=1;
+        }else {
+            result[i]=0;
+            diff[i]=0;
+        }
+    }
+    return {result, diff};
+}
+
+std::ostream& operator<< (std::ostream& os, const vector<double>& v){
+    for (double e : v) os << e << " ";
+    os << std::endl;
+    return os;
+}
+
+std::ostream& operator<< (std::ostream& os, const vector<vector<double>>& v){
+    for (const vector<double>& e : v) os << e;
+    return os;
+}
